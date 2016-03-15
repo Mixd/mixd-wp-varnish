@@ -1,14 +1,21 @@
 <?php
 /*
-Plugin Name: Varnish HTTP Purge
-Plugin URI: http://wordpress.org/extend/plugins/varnish-http-purge/
+Plugin Name: Varnish HTTP Purge (MIXD Fork)
+Plugin URI: https://github.com/Mixd/varnish-http-purge
 Description: Sends HTTP PURGE requests to URLs of changed posts/pages when they are modified.
-Version: 3.8
-Author: Mika Epstein
-Author URI: http://halfelf.org/
+Version: 1.0.0
+Author: Luke Whitehouse
+Author URI: http://github.com/mixd
 License: http://www.apache.org/licenses/LICENSE-2.0
 Text Domain: varnish-http-purge
 Network: true
+
+========================
+========================
+THIS IS A FORK OF THE WORK DONE BY MIKA A. EPSTEIN ON THE FOLLOWING PLUGIN BASED AT:
+https://wordpress.org/plugins/varnish-http-purge/
+========================
+========================
 
 Copyright 2013-2016: Mika A. Epstein (email: ipstenu@ipstenu.org)
 
