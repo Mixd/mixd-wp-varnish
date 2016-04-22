@@ -48,7 +48,6 @@ class VarnishPurger {
 	 * @access public
 	 */
 	public function __construct() {
-		defined('varnish-http-purge') || define('varnish-http-purge', true);
 		defined('VHP_VARNISH_IP') || define('VHP_VARNISH_IP', false );
 		add_action( 'init', array( &$this, 'init' ) );
 		add_action( 'activity_box_end', array( $this, 'varnish_rightnow' ), 100 );
@@ -62,7 +61,6 @@ class VarnishPurger {
 	 */
 	public function init() {
 		global $blog_id;
-		load_plugin_textdomain( 'varnish-http-purge' );
 
 		// get my events
 		$events = $this->getRegisterEvents();
@@ -85,20 +83,14 @@ class VarnishPurger {
 			add_action( 'admin_notices' , array( $this, 'purgeMessage'));
 		}
 
-    	$editor = get_role( 'editor' );
-    	$editor->add_cap( 'manage_varnish' );
-
-    	$administrator = get_role( 'administrator' );
-    	$administrator->add_cap( 'manage_varnish' );
-
 		// Warning: No Pretty Permalinks!
-		if ( '' == get_option( 'permalink_structure' ) && current_user_can('manage_varnish') ) {
+		if ( '' == get_option( 'permalink_structure' ) && current_user_can('manage_options') ) {
 			add_action( 'admin_notices' , array( $this, 'prettyPermalinksMessage'));
 		}
 
 		if (
 			// SingleSite - admins can always purge
-			( !is_multisite() && current_user_can('manage_varnish') ) ||
+			( !is_multisite() && current_user_can('publish_pages') ) ||
 			// Multisite - Network Admin can always purge
 			current_user_can('manage_network') ||
 			// Multisite - Site admins can purge UNLESS it's a subfolder install and we're on site #1
@@ -137,7 +129,7 @@ class VarnishPurger {
 	function varnish_rightnow_adminbar($admin_bar){
 		$admin_bar->add_menu( array(
 			'id'	=> 'purge-varnish-cache-all',
-			'title' => 'Purge Varnish',
+			'title' => __('Purge Varnish','varnish-http-purge'),
 			'href'  => wp_nonce_url(add_query_arg('vhp_flush_all', 1), 'varnish-http-purge'),
 			'meta'  => array(
 				'title' => __('Purge Varnish','varnish-http-purge'),
@@ -163,7 +155,7 @@ class VarnishPurger {
 
 		if (
 			// SingleSite - admins can always purge
-			( !is_multisite() && current_user_can('manage_varnish') ) ||
+			( !is_multisite() && current_user_can('publish_pages') ) ||
 			// Multisite - Network Admin can always purge
 			current_user_can('manage_network') ||
 			// Multisite - Site admins can purge UNLESS it's a subfolder install and we're on site #1
