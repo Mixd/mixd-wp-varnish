@@ -83,14 +83,20 @@ class VarnishPurger {
 			add_action( 'admin_notices' , array( $this, 'purgeMessage'));
 		}
 
+		$editor = get_role( 'editor' );
+		$editor->add_cap( 'manage_varnish' );
+
+		$administrator = get_role( 'administrator' );
+		$administrator->add_cap( 'manage_varnish' );
+
 		// Warning: No Pretty Permalinks!
-		if ( '' == get_option( 'permalink_structure' ) && current_user_can('manage_options') ) {
+		if ( '' == get_option( 'permalink_structure' ) && current_user_can('manage_varnish') ) {
 			add_action( 'admin_notices' , array( $this, 'prettyPermalinksMessage'));
 		}
 
 		if (
 			// SingleSite - admins can always purge
-			( !is_multisite() && current_user_can('publish_pages') ) ||
+			( !is_multisite() && current_user_can('manage_varnish') ) ||
 			// Multisite - Network Admin can always purge
 			current_user_can('manage_network') ||
 			// Multisite - Site admins can purge UNLESS it's a subfolder install and we're on site #1
@@ -155,7 +161,7 @@ class VarnishPurger {
 
 		if (
 			// SingleSite - admins can always purge
-			( !is_multisite() && current_user_can('publish_pages') ) ||
+			( !is_multisite() && current_user_can('manage_varnish') ) ||
 			// Multisite - Network Admin can always purge
 			current_user_can('manage_network') ||
 			// Multisite - Site admins can purge UNLESS it's a subfolder install and we're on site #1
