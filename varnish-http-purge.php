@@ -1,10 +1,10 @@
 <?php
 /*
-Plugin Name: Varnish HTTP Purge (MIXD Fork)
-Plugin URI: https://github.com/Mixd/varnish-http-purge
+Plugin Name: Mixd Plugins: Varnish HTTP Purge
+Plugin URI: https://github.com/Mixd/mixd-wp-varnish
 Description: Sends HTTP PURGE requests to URLs of changed posts/pages when they are modified.
-Version: 1.0.0
-Author: Luke Whitehouse
+Version: Mixd-1.0.0
+Author: Mixd
 Author URI: http://github.com/mixd
 License: http://www.apache.org/licenses/LICENSE-2.0
 Text Domain: varnish-http-purge
