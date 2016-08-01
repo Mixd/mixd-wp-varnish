@@ -1,9 +1,9 @@
 <?php
 /*
-Plugin Name: Mixd Plugins: Varnish HTTP Purge
+Plugin Name: Mixd Plugins - Purge Varnish Cache
 Plugin URI: https://github.com/Mixd/mixd-wp-varnish
 Description: Sends HTTP PURGE requests to URLs of changed posts/pages when they are modified.
-Version: Mixd-1.0.0
+Version: 3.9.0
 Author: Mixd
 Author URI: http://github.com/mixd
 License: http://www.apache.org/licenses/LICENSE-2.0
@@ -64,19 +64,26 @@ class VarnishPurger {
 
 		// get my events
 		$events = $this->getRegisterEvents();
-
-		// make sure we have events and it's an array
-		if ( ! empty( $events ) ) {
-
-			// Force it to be an array, in case someone's stupid
-			$events = (array) $events;
-
-			// Add the action for each event
-			foreach ( $events as $event) {
-				add_action( $event, array($this, 'purgePost'), 10, 2 );
-			}
-		}
-		add_action( 'shutdown', array($this, 'executePurge') );
+        
+        // make sure we have events and they're in an array
+        if ( ! empty( $events ) && ! empty( $noIDevents ) ) {
+            
+            // Force it to be an array, in case someone's stupid
+            $events     = (array) $events;
+            $noIDevents = (array) $noIDevents;
+            
+            // Add the action for each event
+            foreach ( $events as $event ) {
+                if ( in_array( $event, $noIDevents ) ) {
+                    // These events have no post ID and, thus, will perform a full purge
+                    add_action( $event, [$this, 'purgeNoID'] );
+                } else {
+                    add_action( $event, [$this, 'purgePost'], 10, 2 );
+                }
+            }
+        }
+        
+        add_action( 'shutdown', array($this, 'executePurge') );
 
 		// Success: Admin notice when purging
 		if ( isset($_GET['vhp_flush_all']) && check_admin_referer('varnish-http-purge') ) {
@@ -123,9 +130,9 @@ class VarnishPurger {
 	 *
 	 * @since 2.0
 	 */
-	function prettyPermalinksMessage() {
-		echo "<div id='message' class='error'><p>".__( 'Varnish HTTP Purge requires you to use custom permalinks. Please go to the <a href="options-permalink.php">Permalinks Options Page</a> to configure them.', 'varnish-http-purge' )."</p></div>";
-	}
+    function prettyPermalinksMessage() {
+        echo "<div id="message" class="error"><p>" . printf( _( 'Varnish HTTP Purge requires you to use custom permalinks. Please go to the <a href="%s">Permalinks Options Page</a> to configure them.', 'varnish-http-purge' ), 'options-permalink.php' ) . "</p></div>";
+    }
 
 	/**
 	 * Varnish Purge Button in the Admin Bar
@@ -163,9 +170,9 @@ class VarnishPurger {
 			// SingleSite - admins can always purge
 			( !is_multisite() && current_user_can('manage_varnish') ) ||
 			// Multisite - Network Admin can always purge
-			current_user_can('manage_network') ||
+			current_user_can('manage_varnish') ||
 			// Multisite - Site admins can purge UNLESS it's a subfolder install and we're on site #1
-			( is_multisite() && !current_user_can('manage_network') && ( SUBDOMAIN_INSTALL || ( !SUBDOMAIN_INSTALL && ( BLOG_ID_CURRENT_SITE != $blog_id ) ) ) )
+			( is_multisite() && !current_user_can('manage_varnish') && ( SUBDOMAIN_INSTALL || ( !SUBDOMAIN_INSTALL && ( BLOG_ID_CURRENT_SITE != $blog_id ) ) ) )
 		) {
 			$text = $intro.' '.$button;
 		} else {
@@ -182,23 +189,45 @@ class VarnishPurger {
 	 * @access protected
 	 */
 	protected function getRegisterEvents() {
-
-		// Define registered purge events
-		$actions = array(
-			'save_post',            // Save a post
-			'deleted_post',         // Delete a post
-			'trashed_post',         // Empty Trashed post
-			'edit_post',            // Edit a post - includes leaving comments
-			'delete_attachment',    // Delete an attachment - includes re-uploading
-			'switch_theme',         // Change theme
-		);
-
-		// send back the actions array, filtered
+        
+        // Define registered purge events
+        $actions = [
+            'switch_theme',                        // After a theme is changed
+            'autoptimize_action_cachepurged',    // Compat with https://wordpress.org/plugins/autoptimize/
+            'save_post',                       // Save a post
+            'deleted_post',                   // Delete a post
+            'trashed_post',                   // Empty Trashed post
+            'edit_post',                      // Edit a post - includes leaving comments
+            'delete_attachment',               // Delete an attachment - includes re-uploading
+        ];
+        
+        // send back the actions array, filtered
 		// @param array $actions the actions that trigger the purge event
 		return apply_filters( 'varnish_http_purge_events', $actions );
 	}
-
-	/**
+    
+    /**
+     * Events that have no post IDs
+     * These are when a full purge is triggered
+     *
+     * @since  3.9
+     * @access protected
+     */
+    protected function getNoIDEvents() {
+        
+        // Define registered purge events
+        $actions = [
+            'switch_theme',                        // After a theme is changed
+            'autoptimize_action_cachepurged,'    // Compat with https://wordpress.org/plugins/autoptimize/
+        ];
+        
+        // send back the actions array, filtered
+        // @param array $actions the actions that trigger the purge event
+        // DEVELOPERS! USE THIS SPARINGLY! YOU'RE A GREAT BIG :poop: IF YOU USE IT FLAGRANTLY
+        return apply_filters( 'varnish_http_purge_events_full', $actions );
+    }
+    
+    /**
 	 * Execute Purge
 	 * Run the purge command for the URLs. Calls $this->purgeUrl for each URL
 	 *
@@ -244,6 +273,8 @@ class VarnishPurger {
 		} else {
 			$varniship = get_option('vhp_varnish_ip');
 		}
+        
+        $varniship = apply_filters( 'vhp_varnish_ip', $varniship );
 
 		if (isset($p['path'] ) ) {
 			$path = $p['path'];
@@ -262,23 +293,54 @@ class VarnishPurger {
 		 */
 
 		$schema = apply_filters( 'varnish_http_purge_schema', 'http://' );
-
-		// If we made varniship, let it sail
-		if ( isset($varniship) && $varniship != null ) {
-			$purgeme = $schema.$varniship.$path.$pregex;
-		} else {
-			$purgeme = $schema.$p['host'].$path.$pregex;
-		}
-
-		// Cleanup CURL functions to be wp_remote_request and thus better
-		// http://wordpress.org/support/topic/incompatability-with-editorial-calendar-plugin
-		$response = wp_remote_request($purgeme, array('method' => 'PURGE', 'headers' => array( 'host' => $p['host'], 'X-Purge-Method' => $varnish_x_purgemethod ) ) );
-
-		do_action('after_purge_url', $url, $purgeme, $response);
-	}
-
-	/**
-	 * Purge Post
+        
+        // If we made varniship, let it sail
+        if ( isset( $varniship ) && $varniship != null ) {
+            $host = $varniship;
+        } else {
+            $host = $p[ 'host' ];
+        }
+        
+        $purgeme = $schema . $host . $path . $pregex;
+        
+        if ( ! empty( $p[ 'query' ] ) && $p[ 'query' ] != 'vhp-regex' ) {
+            $purgeme .= '?' . $p[ 'query' ];
+        }
+        
+        // Cleanup CURL functions to be wp_remote_request and thus better
+        // http://wordpress.org/support/topic/incompatability-with-editorial-calendar-plugin
+        $response = wp_remote_request( $purgeme, ['method'  => 'PURGE',
+                                                  'headers' => ['host'           => $p[ 'host' ],
+                                                                'X-Purge-Method' => $varnish_x_purgemethod
+                                                  ]
+        ] );
+        
+        do_action( 'after_purge_url', $url, $purgeme, $response );
+    }
+    
+    /**
+     * Purge - No IDs
+     * Flush the whole cache
+     *
+     * @since  3.9
+     * @access private
+     */
+    public function purgeNoID( $postId ) {
+        
+        $listofurls = [];
+        
+        array_push( $listofurls, home_url( '/?vhp-regex' ) );
+        
+        // Now flush all the URLs we've collected provided the array isn't empty
+        if ( ! empty( $listofurls ) ) {
+            foreach ( $listofurls as $url ) {
+                array_push( $this->purgeUrls, $url );
+            }
+        }
+    }
+    
+    /**
+     * Purge Post
 	 * Flush the post
 	 *
 	 * @since 1.0
@@ -292,75 +354,80 @@ class VarnishPurger {
 
 		$validPostStatus = array("publish", "trash");
 		$thisPostStatus  = get_post_status($postId);
-
-		// If this is a revision, stop.
-		if( get_permalink($postId) !== true && !in_array($thisPostStatus, $validPostStatus) ) {
-			return;
-		} else {
-			// array to collect all our URLs
-			$listofurls = array();
-
-			// Category purge based on Donnacha's work in WP Super Cache
-			$categories = get_the_category($postId);
-			if ( $categories ) {
-				foreach ($categories as $cat) {
-					array_push($listofurls, get_category_link( $cat->term_id ) );
-				}
-			}
-			// Tag purge based on Donnacha's work in WP Super Cache
-			$tags = get_the_tags($postId);
-			if ( $tags ) {
-				foreach ($tags as $tag) {
-					array_push($listofurls, get_tag_link( $tag->term_id ) );
-				}
-			}
-
-			// Author URL
-			array_push($listofurls,
-				get_author_posts_url( get_post_field( 'post_author', $postId ) ),
-				get_author_feed_link( get_post_field( 'post_author', $postId ) )
-			);
-
-			// Archives and their feeds
-			$archiveurls = array();
-			if ( get_post_type_archive_link( get_post_type( $postId ) ) == true ) {
-				array_push($listofurls,
-					get_post_type_archive_link( get_post_type( $postId ) ),
-					get_post_type_archive_feed_link( get_post_type( $postId ) )
-				);
-			}
-
-			// Post URL
-			array_push($listofurls, get_permalink($postId) );
-
-			// Feeds
-			array_push($listofurls,
-				get_bloginfo_rss('rdf_url') ,
-				get_bloginfo_rss('rss_url') ,
-				get_bloginfo_rss('rss2_url'),
-				get_bloginfo_rss('atom_url'),
-				get_bloginfo_rss('comments_rss2_url'),
-				get_post_comments_feed_link($postId)
-			);
-
-			// Home Page and (if used) posts page
-			array_push($listofurls, home_url('/') );
-			if ( get_option('show_on_front') == 'page' ) {
-				array_push($listofurls, get_permalink( get_option('page_for_posts') ) );
-			}
-
-			// Now flush all the URLs we've collected
-			foreach ($listofurls as $url) {
-				array_push($this->purgeUrls, $url ) ;
-			}
-		}
-
+        
+        // array to collect all our URLs
+        $listofurls = [];
+        
+        if ( get_permalink( $postId ) == true && in_array( $thisPostStatus, $validPostStatus ) ) {
+            // If this is a post with a permalink AND it's published or trashed,
+            // we're going to add a ton of things to flush.
+            
+            // Category purge based on Donnacha's work in WP Super Cache
+            $categories = get_the_category( $postId );
+            if ( $categories ) {
+                foreach ( $categories as $cat ) {
+                    array_push( $listofurls, get_category_link( $cat->term_id ) );
+                }
+            }
+            // Tag purge based on Donnacha's work in WP Super Cache
+            $tags = get_the_tags( $postId );
+            if ( $tags ) {
+                foreach ( $tags as $tag ) {
+                    array_push( $listofurls, get_tag_link( $tag->term_id ) );
+                }
+            }
+            
+            // Author URL
+            array_push( $listofurls,
+                get_author_posts_url( get_post_field( 'post_author', $postId ) ),
+                get_author_feed_link( get_post_field( 'post_author', $postId ) )
+            );
+            
+            // Archives and their feeds
+            $archiveurls = [];
+            if ( get_post_type_archive_link( get_post_type( $postId ) ) == true ) {
+                array_push( $listofurls,
+                    get_post_type_archive_link( get_post_type( $postId ) ),
+                    get_post_type_archive_feed_link( get_post_type( $postId ) )
+                );
+            }
+            
+            // Post URL
+            array_push( $listofurls, get_permalink( $postId ) );
+            
+            // Feeds
+            array_push( $listofurls,
+                get_bloginfo_rss( 'rdf_url' ),
+                get_bloginfo_rss( 'rss_url' ),
+                get_bloginfo_rss( 'rss2_url' ),
+                get_bloginfo_rss( 'atom_url' ),
+                get_bloginfo_rss( 'comments_rss2_url' ),
+                get_post_comments_feed_link( $postId )
+            );
+            
+            // Home Page and (if used) posts page
+            array_push( $listofurls, home_url( '/' ) );
+            if ( get_option( 'show_on_front' ) == 'page' ) {
+                array_push( $listofurls, get_permalink( get_option( 'page_for_posts' ) ) );
+            }
+        } else {
+            // We're not sure how we got here, but bail instead of processing anything else.
+            return;
+        }
+        
+        // Now flush all the URLs we've collected provided the array isn't empty
+        if ( ! empty( $listofurls ) ) {
+            foreach ( $listofurls as $url ) {
+                array_push( $this->purgeUrls, $url );
+            }
+        }
+        
         // Filter to add or remove urls to the array of purged urls
         // @param array $purgeUrls the urls (paths) to be purged
         // @param int $postId the id of the new/edited post
         $this->purgeUrls = apply_filters( 'vhp_purge_urls', $this->purgeUrls, $postId );
-	}
-
+    }
+    
 }
 
 $purger = new VarnishPurger();
