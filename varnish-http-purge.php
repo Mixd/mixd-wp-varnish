@@ -103,6 +103,12 @@ class VarnishPurger {
 				add_action( 'admin_bar_menu', array( $this, 'varnish_rightnow_adminbar' ), 100 );
 		}
 
+		$editor = get_role( 'editor' );
+ 		$editor->add_cap( 'manage_varnish' );
+
+ 		$administrator = get_role( 'administrator' );
+ 		$administrator->add_cap( 'manage_varnish' );
+
 	}
 
 	/**
