@@ -77,7 +77,7 @@ class VarnishStatus {
 	function register_settings_ip() {
 		register_setting( 'varnish-http-purge-ip', 'vhp_varnish_ip', array( &$this, 'varnish_ip_sanitize' ) );
 		
-		add_settings_section( 'varnish-ip-settings-section', __('Configure Custom Varnish IP', 'varnish-http-purge'), array( &$this, 'options_callback_ip'), 'varnish-ip-settings' );		
+		add_settings_section( 'varnish-ip-settings-section', __('Configure Custom Varnish IP', 'varnish-http-purge'), array( &$this, 'options_callback_ip'), 'varnish-ip-settings' );
 		add_settings_field( 'varnish_ip', __('Set Varnish IP', 'varnish-http-purge'), array( &$this, 'varnish_ip_callback'), 'varnish-ip-settings', 'varnish-ip-settings-section' );
 	}
 
@@ -118,7 +118,7 @@ class VarnishStatus {
 		<input type="text" id="vhp_varnish_ip" name="vhp_varnish_ip" value="<?php echo $varniship; ?>" size="25" <?php if ( $disabled == true ) { echo 'disabled'; } ?>/>
 		<label for="vhp_varnish_ip">
 			<?php
-			if ( $disabled == true ) { 
+			if ( $disabled == true ) {
 				_e('The Varnish IP has been defined in your wp-config, so it is not editable here.', 'varnish-http-purge');
 			} else {
 				_e('Example:', 'varnish-http-purge'); ?> <code>123.45.67.89</code><?php
@@ -147,7 +147,7 @@ class VarnishStatus {
 		$varnishurl = get_option( 'vhp_varnish_url', $url );
 
 		$args = array(
-			'headers' => array( 
+			'headers' => array(
 				'timeout' 		=> 30,
 				'redirection' 	=> 10,
 			)
@@ -265,7 +265,7 @@ class VarnishStatus {
 					?><tr>
 						<td><?php echo $icon_good; ?></td>
 						<td><?php _e( 'Your site is compressing content and making the internet faster.', 'varnish-http-purge' ); ?></td>
-					</tr><?php						
+					</tr><?php
 					}
 	
 					// Fastly
@@ -274,7 +274,7 @@ class VarnishStatus {
 						<td><?php echo $icon_good; ?></td>
 						<td><?php printf( __( '<a href="%s">Fastly</a> is speeding up your site. Keep in mind, it may cache your CSS and images longer than Varnish does. Remember to empty all caches.', 'varnish-http-purge'  ), esc_url('https://fastly.com') ); ?></td>
 					</tr><?php
-					} 
+					}
 				}
 	
 				/* Things that breaks Varnish */
@@ -298,7 +298,7 @@ class VarnishStatus {
 						?><tr>
 							<td><?php echo $icon_warning; ?></td>
 							<td><?php printf( __( '<a href="%s">Easy Digital Downloads</a> is putting down a shopping cart cookie on every page load. Make sure Varnish is set up to ignore that when it\'s empty.', 'varnish-http-purge'  ), esc_url('https://wordpress.org/plugins/easy-digital-downloads/') ); ?></td>
-						</tr><?php				
+						</tr><?php
 					}
 					if ( strpos( $headers['Set-Cookie'], 'wfvt_' ) !== false ) {
 						?><tr>
@@ -331,7 +331,7 @@ class VarnishStatus {
 									<li><?php _e( 'A theme or plugin is setting a session cookie, which can prevent Varnish from serving content from cache. You need to make it not send a session cookie for anonymous traffic. ', 'varnish-http-purge' ); ?></li>
 								</ul>
 							</td>
-						</tr><?php			
+						</tr><?php
 					}
 				}
 				
@@ -413,13 +413,13 @@ class VarnishStatus {
 				
 			<?php settings_errors(); ?>
 
-			<form action="options.php" method="POST" ><?php
+			<form action="" method="POST" ><?php
 				settings_fields( 'varnish-http-purge-url' );
 				do_settings_sections( 'varnish-url-settings' );
 				submit_button( 'Check URL', 'primary');
 			?></form>
 
-			<form action="options.php" method="POST" ><?php
+			<form action="" method="POST" ><?php
 				// Only available if _not_ multisite
 				if ( !is_multisite() ) {
 					settings_fields( 'varnish-http-purge-ip' );
@@ -442,7 +442,7 @@ class VarnishStatus {
 
 		$output = '';
 		$set_message = 'You have entered an invalid IP address.';
-		$set_type = 'error';	
+		$set_type = 'error';
 
 		if ( empty($input) ) {
 			return; // do nothing
@@ -466,7 +466,7 @@ class VarnishStatus {
 
 		$baseurl_host = parse_url( esc_url( VarnishPurger::the_home_url() ), PHP_URL_HOST );
 		$output = esc_url( VarnishPurger::the_home_url() );
-		$set_type = 'error';	
+		$set_type = 'error';
 
 		if ( !empty($input) ) {
 			$parsed_input = parse_url($input);

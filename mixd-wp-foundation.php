@@ -11,12 +11,16 @@
      * @since       1.1.0 Included splash page
      */
     
+    
+    
     /**
      * If we're not being loaded by WordPress, abort now
      */
     if ( ! defined( 'WPINC' ) ) {
         die;
     }
+    
+    
     
     /**
      * Set 'Administrator' and 'Editor' roles to have access to Plugin config by default
@@ -36,6 +40,8 @@
         
         add_action( 'admin_init', 'mixd_wp_plugin_add_caps' );
     }
+    
+    
     
     /**
      * Check to make sure that another plugin has not already registered the plugin
@@ -71,16 +77,20 @@
         }
     }
     
+    
+    
     /**
      * Outputs information on the Mixd Plugin Landing Page in WordPress Admin
      *
-     * @since 1.1.1 Included spash page
+     * @since 1.1.0 Included spash page
      * @since 1.0.0
      */
     function mixd_wp_splash() {
         
         require_once('splash.php');
     }
+    
+    
     
     /**
      * Include admin stylesheet if it isn't already enqueued
