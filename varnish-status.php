@@ -1,5 +1,5 @@
 <?php
-
+	
 /**
 	This file is part of Varnish HTTP Purge, a plugin for WordPress.
 
@@ -9,7 +9,7 @@
 	Varnish HTTP Purge is distributed in the hope that it will be useful,
 	but WITHOUT ANY WARRANTY; without even the implied warranty of
 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-
+	
 */
 
 if (!defined('ABSPATH')) {
@@ -44,7 +44,8 @@ class VarnishStatus {
 	 */
 	function admin_init() {
 		// Register Settings
-		$this->register_settings();
+		$this->register_settings_url();
+		$this->register_settings_ip();
 	}
 
 	/**
@@ -53,22 +54,30 @@ class VarnishStatus {
 	 * @since 4.0
 	 */
 	function admin_menu() {
-		add_management_page( __('Is Varnish Working?', 'varnish-http-purge'), __('Varnish Status', 'varnish-http-purge'), 'manage_varnish', 'varnish-status', array( &$this, 'settings_page' ) );
+		add_management_page( __('Is Varnish Working?', 'varnish-http-purge'), __('Varnish Status', 'varnish-http-purge'), 'manage_options', 'varnish-status', array( &$this, 'settings_page' ) );
 	}
 
 	/**
-	 * Register Admin Settings
+	 * Register Admin Settings URL
 	 *
 	 * @since 4.0
 	 */
-	function register_settings() {
-		register_setting( 'varnish-http-purge', 'vhp_varnish_ip', array( &$this, 'varnish_ip_sanitize' ) );
-		register_setting( 'varnish-http-purge', 'vhp_varnish_url', array( &$this, 'varnish_url_sanitize' ) );
+	function register_settings_url() {
+		register_setting( 'varnish-http-purge-url', 'vhp_varnish_url', array( &$this, 'varnish_url_sanitize' ) );
 
-		add_settings_section( 'varnish-url-settings-section', __('Current Varnish Status', 'varnish-http-purge'), array( &$this, 'options_callback_url'), 'varnish-url-settings' );
-		add_settings_field( 'varnish_url', __('Check Another URL', 'varnish-http-purge'), array( &$this, 'varnish_url_callback'), 'varnish-url-settings', 'varnish-url-settings-section' );
+		add_settings_section( 'varnish-url-settings-section', __('Check Varnish Status', 'varnish-http-purge'), array( &$this, 'options_callback_url'), 'varnish-url-settings' );
+		add_settings_field( 'varnish_url', __('Check A URL On Your Site:', 'varnish-http-purge'), array( &$this, 'varnish_url_callback'), 'varnish-url-settings', 'varnish-url-settings-section' );
+	}
 
-		add_settings_section( 'varnish-ip-settings-section', __('Configure Custom Varnish IP', 'varnish-http-purge'), array( &$this, 'options_callback_ip'), 'varnish-ip-settings' );
+	/**
+	 * Register Admin Settings IP
+	 *
+	 * @since 4.0.2
+	 */
+	function register_settings_ip() {
+		register_setting( 'varnish-http-purge-ip', 'vhp_varnish_ip', array( &$this, 'varnish_ip_sanitize' ) );
+		
+		add_settings_section( 'varnish-ip-settings-section', __('Configure Custom Varnish IP', 'varnish-http-purge'), array( &$this, 'options_callback_ip'), 'varnish-ip-settings' );		
 		add_settings_field( 'varnish_ip', __('Set Varnish IP', 'varnish-http-purge'), array( &$this, 'varnish_ip_callback'), 'varnish-ip-settings', 'varnish-ip-settings-section' );
 	}
 
@@ -79,9 +88,13 @@ class VarnishStatus {
 	 */
 	function options_callback_ip() {
 	    ?>
-	    <p><a name="#configure"></a><?php _e('The majority of users will never need to so much as look down here. However there are cases when a custom Varnish IP Address will need to be set, in order to tell the plugin to flush cache in a specific location. If you\'re using a CDN like Cloudflare or a Firewall Proxy like Sucuri, you will want to set this.', 'varnish-http-purge'); ?></p>
+	    <p><a name="#configure"></a><?php _e('The majority of users will never need to so much as look down here. However there are cases when a custom Varnish IP Address will need to be set, in order to tell the plugin to empty the cache in a specific location. If you\'re using a CDN like Cloudflare or a Firewall Proxy like Sucuri, you will want to set this.', 'varnish-http-purge'); ?></p>
 	    <p><?php _e('Your Varnish IP is just the IP address of the server where Varnish is installed. Your Varnish IP must be one of the IPs that Varnish is listening on. If you use multiple IPs, or if you\'ve customized your ACLs, you\'ll need to pick one that doesn\'t conflict with your other settings. For example, if you have Varnish listening on a public and private IP, pick the private. On the other hand, if you told Varnish to listen on 0.0.0.0 (i.e. "listen on every interface you can") you would need to check what IP you set your purge ACL to allow (commonly 127.0.0.1 aka localhost), and use that (i.e. 127.0.0.1).', 'varnish-http-purge'); ?></p>
-	    <p><?php _e('If your webhost set up Varnish for you, you may need to ask them for the specifics if they don\'t have it documented.', 'varnish-http-purge'); ?></p>
+	    <p><?php _e('If your webhost set up Varnish for you, you may need to ask them for the specifics if they don\'t have it documented. I\'ve listed the ones I know about here, however you should still check with them if you\'re not sure.', 'varnish-http-purge'); ?></p>
+
+		<ul>
+		    <li><?php _e('DreamHost - Go into the Panel and click on the DNS settings for the domain. The entry for <em>resolve-to.domain</em> (if set) will your varnish server. If it\'s not set, then you don\'t need to worry about this at all. Example:', 'varnish-http-purge'); ?> <code>resolve-to.www A 208.97.157.172</code></li>
+		</ul>
 
 	    <?php
 	}
@@ -94,7 +107,7 @@ class VarnishStatus {
 	function varnish_ip_callback() {
 
 		$disabled = false;
-
+		
 		if ( VHP_VARNISH_IP != false ) {
 			$disabled = true;
 			$varniship = VHP_VARNISH_IP;
@@ -105,7 +118,7 @@ class VarnishStatus {
 		<input type="text" id="vhp_varnish_ip" name="vhp_varnish_ip" value="<?php echo $varniship; ?>" size="25" <?php if ( $disabled == true ) { echo 'disabled'; } ?>/>
 		<label for="vhp_varnish_ip">
 			<?php
-			if ( $disabled == true ) {
+			if ( $disabled == true ) { 
 				_e('The Varnish IP has been defined in your wp-config, so it is not editable here.', 'varnish-http-purge');
 			} else {
 				_e('Example:', 'varnish-http-purge'); ?> <code>123.45.67.89</code><?php
@@ -121,6 +134,9 @@ class VarnishStatus {
 	 * @since 4.0
 	 */
 	function options_callback_url() {
+
+		?><p><?php _e( 'While it would be impossible to detect all possible conflicts, this Status Page will perform a check of the most common issues that prevent Varnish from caching your site properly.', 'varnish-http-purge' ); ?></p><?php
+
 		$icon_awesome	= '<span class="dashicons dashicons-heart" style="color:#008000;"></span>';
 		$icon_good 		= '<span class="dashicons dashicons-thumbs-up" style="color:#008000;"></span>';
 		$icon_warning 	= '<span class="dashicons dashicons-warning" style="color:#FF9933"></span>';
@@ -131,27 +147,50 @@ class VarnishStatus {
 		$varnishurl = get_option( 'vhp_varnish_url', $url );
 
 		$args = array(
-			'headers' => array(
+			'headers' => array( 
 				'timeout' 		=> 30,
 				'redirection' 	=> 10,
 			)
 		);
-
+		
 		$response = wp_remote_get( $varnishurl, $args );
 		$headers = wp_remote_retrieve_headers( $response );
 		$preflight = true;
-
+		
 		// Basic checks that should stop a scan
 		if( is_wp_error($response) ) {
 			$preflight = false;
-			$failure_to_launch = __('This request cannot be performed.', 'varnish-http-purge');
+			$failure_to_launch = __('This request cannot be performed: ', 'varnish-http-purge');
+			$failure_to_launch .= $response->get_error_message();
 		}
 		if( wp_remote_retrieve_response_code($response) == '404' ) {
 			$preflight = false;
 			$failure_to_launch = __('This URL is a 404. Please check your typing and try again.', 'varnish-http-purge');
 		}
-		?>
 
+		// Get the IP address so we can check things later
+		if ( isset( $headers['X-Forwarded-For'] ) && filter_var( $headers['X-Forwarded-For'], FILTER_VALIDATE_IP, FILTER_FLAG_IPV4 ) ) {
+			$remote_ip = $headers['X-Forwarded-For'];
+		} elseif ( isset( $headers['HTTP_X_FORWARDED_FOR'] ) && filter_var( $headers['HTTP_X_FORWARDED_FOR'], FILTER_VALIDATE_IP, FILTER_FLAG_IPV4 )
+		) {
+			$remote_ip = $headers['HTTP_X_FORWARDED_FOR'];
+		} elseif ( strpos( $headers['Server'] ,'cloudflare') !== false ) {
+			$remote_ip = 'cloudflare';
+		} else {
+			$remote_ip = false;
+		}
+		
+		// Get the Varnish IP
+		if ( VHP_VARNISH_IP != false ) {
+			$varniship = VHP_VARNISH_IP;
+		} else {
+			$varniship = get_option('vhp_varnish_ip');
+		}
+
+		?>
+		
+		<h4><?php printf( __( 'Results for %s', 'varnish-http-purge'  ), $varnishurl ); ?></h4>
+		
 		<table class="wp-list-table widefat fixed posts">
 		<?php
 
@@ -162,7 +201,7 @@ class VarnishStatus {
 				</tr><?php
 			} else {
 				/* Pre Flight Checks */
-
+				
 				// VARNISH
 				if ( isset( $headers['x-cacheable'] ) && strpos( $headers['x-cacheable'] ,'YES') !== false ) {
 				?><tr>
@@ -181,14 +220,34 @@ class VarnishStatus {
 				</tr><?php
 				}
 
+				// Remote IP (i.e. Yo Dawg, I heard you like proxies
+				?><tr><?php
+					if ( $remote_ip == false && !empty( $varniship) ) {
+					?>
+						<td width="40px"><?php echo $icon_bad; ?></td>
+						<td><?php printf( __( 'You have a Varnish IP set but you don\'t appear to be using a proxy like Cloudflare or Sucuri. Or at least we don\'t detect a proxy IP like we expected. You may need to <a href="%s">erase your Varnish IP</a> if you have issues with caches not emptying.', 'varnish-http-purge'  ), '#configure' ); ?></td>
+					<?php
+					} elseif ( $remote_ip !== false && $remote_ip !== $varniship ) {
+					?>
+						<td width="40px"><?php echo $icon_bad; ?></td>
+						<td><?php printf( __( 'You\'re using a Custom Varnish IP that doesn\'t appear to match your server IP address. Please make sure you\'ve <a href="%s">properly configured it</a> according to your webhost\'s specifications.', 'varnish-http-purge'  ), '#configure' ); ?></td>
+					<?php
+					} else {
+					?>
+						<td width="40px"><?php echo $icon_good; ?></td>
+						<td><?php printf( __( 'Your sever IP setup looks just fine. If you are using a proxy (like Sucuri or Cloudflare or Fastly) please double check that configuration and make sure to add a <a href="%s">custom Varnish IP</a> .', 'varnish-http-purge'  ), '#configure' ); ?></td>
+					<?php
+					}
+				?></tr><?php
+
 				// Cloudflare
 				if ( strpos( $headers['Server'] ,'cloudflare') !== false ) {
 				?><tr>
 					<td><?php echo $icon_warning; ?></td>
-					<td><?php printf( __( 'Because CloudFlare is running, you may experience some cache oddities. Make sure you <a href="%s">configure WordPress for Cloudflare</a>?', 'varnish-http-purge'  ), '#configure' ); ?></td>
+					<td><?php printf( __( 'Because CloudFlare is running, you may experience some cache oddities. Make sure you <a href="%s">configure WordPress for Cloudflare</a>.', 'varnish-http-purge'  ), '#configure' ); ?></td>
 				</tr><?php
 				}
-
+	
 				// HHVM
 				if ( isset( $headers['X-Powered-By'] ) ) {
 					if ( strpos( $headers['X-Powered-By'] ,'HHVM') !== false ) {
@@ -198,7 +257,7 @@ class VarnishStatus {
 					</tr><?php
 					}
 				}
-
+				
 				// GZIP
 				if ( isset( $headers['Content-Encoding'] ) ) {
 					// Regular gZIP
@@ -206,23 +265,23 @@ class VarnishStatus {
 					?><tr>
 						<td><?php echo $icon_good; ?></td>
 						<td><?php _e( 'Your site is compressing content and making the internet faster.', 'varnish-http-purge' ); ?></td>
-					</tr><?php
+					</tr><?php						
 					}
-
+	
 					// Fastly
 					if ( strpos( $headers['Content-Encoding'] ,'Fastly') !== false ) {
 					?><tr>
 						<td><?php echo $icon_good; ?></td>
-						<td><?php printf( __( '<a href="%s">Fastly</a> is speeding up your site. Keep in mind, it may cache your CSS and images longer than Varnish does. Remember to flush both caches.', 'varnish-http-purge'  ), esc_url('https://fastly.com') ); ?></td>
+						<td><?php printf( __( '<a href="%s">Fastly</a> is speeding up your site. Keep in mind, it may cache your CSS and images longer than Varnish does. Remember to empty all caches.', 'varnish-http-purge'  ), esc_url('https://fastly.com') ); ?></td>
 					</tr><?php
-					}
+					} 
 				}
-
+	
 				/* Things that breaks Varnish */
-
+				
 				// SET COOKIE
 				if ( isset( $headers['Set-Cookie'] ) ) {
-
+				
 					if ( strpos( $headers['Set-Cookie'] , 'PHPSESSID') !== false ) {
 						?><tr>
 							<td><?php echo $icon_bad; ?></td>
@@ -239,7 +298,7 @@ class VarnishStatus {
 						?><tr>
 							<td><?php echo $icon_warning; ?></td>
 							<td><?php printf( __( '<a href="%s">Easy Digital Downloads</a> is putting down a shopping cart cookie on every page load. Make sure Varnish is set up to ignore that when it\'s empty.', 'varnish-http-purge'  ), esc_url('https://wordpress.org/plugins/easy-digital-downloads/') ); ?></td>
-						</tr><?php
+						</tr><?php				
 					}
 					if ( strpos( $headers['Set-Cookie'], 'wfvt_' ) !== false ) {
 						?><tr>
@@ -254,7 +313,7 @@ class VarnishStatus {
 						</tr><?php
 					}
 				}
-
+				
 				// AGE
 				if( !isset($headers['Age']) ) {
 					?><tr>
@@ -272,10 +331,10 @@ class VarnishStatus {
 									<li><?php _e( 'A theme or plugin is setting a session cookie, which can prevent Varnish from serving content from cache. You need to make it not send a session cookie for anonymous traffic. ', 'varnish-http-purge' ); ?></li>
 								</ul>
 							</td>
-						</tr><?php
+						</tr><?php			
 					}
 				}
-
+				
 				// CACHE-CONTROL
 				if ( isset( $headers['Cache-Control'] ) && strpos( $headers['Cache-Control'] ,'no-cache') !== false ) {
 					?><tr>
@@ -283,7 +342,7 @@ class VarnishStatus {
 						<td><?php _e( 'Something is setting the header Cache-Control to "no-cache" which means visitors will never get cached pages.', 'varnish-http-purge' ); ?></td>
 					</tr><?php
 				}
-
+				
 				// MAX AGE
 				if ( isset( $headers['Cache-Control'] ) && strpos( $headers['Cache-Control'] ,'max-age=0') !== false ) {
 					?><tr>
@@ -291,7 +350,7 @@ class VarnishStatus {
 						<td><?php _e( 'Something is setting the header Cache-Control to "max-age=0" which means a page can be no older than 0 seconds before it needs to regenerate the cache.', 'varnish-http-purge' ); ?></td>
 					</tr><?php
 				}
-
+				
 				// PRAGMA
 				if ( isset( $headers['Pragma'] ) && strpos( $headers['Pragma'] ,'no-cache') !== false ) {
 					?><tr>
@@ -299,7 +358,7 @@ class VarnishStatus {
 						<td><?php _e( 'Something is setting the header Pragma to "no-cache" which means visitors will never get cached pages.', 'varnish-http-purge' ); ?></td>
 					</tr><?php
 				}
-
+				
 				// X-CACHE (we're not running this)
 				if ( isset( $headers['X-Cache-Status'] ) && strpos( $headers['X-Cache-Status'] ,'MISS') !== false ) {
 					?><tr>
@@ -307,9 +366,9 @@ class VarnishStatus {
 						<td><?php _e( 'X-Cache missed, which means it was not able to serve this page as cached.', 'varnish-http-purge' ); ?></td>
 					</tr><?php
 				}
-
+				
 				/* Server features */
-
+				
 				// PAGESPEED
 				if ( isset( $headers['X-Mod-Pagespeed'] ) ) {
 					if ( strpos( $headers['X-Cacheable'] , 'YES:Forced') !== false ) {
@@ -338,12 +397,7 @@ class VarnishStatus {
 	function varnish_url_callback() {
 		$url = esc_url( VarnishPurger::the_home_url() );
 		$varnishurl = get_option( 'vhp_varnish_url', $url );
-		?>
-		<input type="text" id="vhp_varnish_url" name="vhp_varnish_url" value="<?php echo $varnishurl; ?>" size="50" />
-		<label for="vhp_varnish_url">
-			<?php printf( __( 'Example: <code>%s</code>', 'varnish-http-purge' ), esc_url( VarnishPurger::the_home_url() ) ); ?>
-		</label>
-	<?php
+		?><input type="text" id="vhp_varnish_url" name="vhp_varnish_url" value="<?php echo $varnishurl; ?>" size="50" /><?php
 	}
 
 	/*
@@ -356,21 +410,21 @@ class VarnishStatus {
 		<div class="wrap">
 
 			<h1><?php _e( 'Is Varnish Working?', 'varnish-http-purge' ); ?></h1>
-
-			<p><?php _e( 'While it would be impossible to detect all possible conflicts, this Status Page will perform a check of the most common issues that prevent Varnish from caching your site properly.', 'varnish-http-purge' ); ?></p>
-
+				
 			<?php settings_errors(); ?>
 
 			<form action="options.php" method="POST" ><?php
-				settings_fields( 'varnish-http-purge' );
-
+				settings_fields( 'varnish-http-purge-url' );
 				do_settings_sections( 'varnish-url-settings' );
 				submit_button( 'Check URL', 'primary');
+			?></form>
 
+			<form action="options.php" method="POST" ><?php
 				// Only available if _not_ multisite
 				if ( !is_multisite() ) {
+					settings_fields( 'varnish-http-purge-ip' );
 					do_settings_sections( 'varnish-ip-settings' );
-					submit_button( 'Save IP', 'primary');
+					submit_button( 'Save IP', 'secondary');
 				}
 			?></form>
 
@@ -386,11 +440,19 @@ class VarnishStatus {
 	 */
 	function varnish_ip_sanitize( $input ) {
 
-		if ( filter_var( $input, FILTER_VALIDATE_IP) ) {
+		$output = '';
+		$set_message = 'You have entered an invalid IP address.';
+		$set_type = 'error';	
+
+		if ( empty($input) ) {
+			return; // do nothing
+		} elseif ( filter_var( $input, FILTER_VALIDATE_IP) ) {
+			$set_message = 'IP Updated.';
+			$set_type = 'updated';
 			$output = filter_var( $input, FILTER_VALIDATE_IP);
-		} else {
-			add_settings_error( 'vhp_varnish_ip', 'invalid-ip', 'You have entered an invalid IP address.' );
 		}
+
+		add_settings_error( 'vhp_varnish_url', 'varnish-url', $set_message, $set_type );
 		return $output;
 	}
 
@@ -403,24 +465,32 @@ class VarnishStatus {
 	function varnish_url_sanitize( $input ) {
 
 		$baseurl_host = parse_url( esc_url( VarnishPurger::the_home_url() ), PHP_URL_HOST );
+		$output = esc_url( VarnishPurger::the_home_url() );
+		$set_type = 'error';	
 
-		if ( filter_var( $input, FILTER_VALIDATE_URL) ) {
-			$thisurl = filter_var( $input, FILTER_VALIDATE_URL);
-			$set_message = 'Scanned URL '.$thisurl;
-			$set_type = 'updated';
-		} else {
+		if ( !empty($input) ) {
+			$parsed_input = parse_url($input);
+			if ( empty($parsed_input['scheme']) ) {
+				$schema_input = 'http://';
+				if ( is_ssl() ) {
+					$schema_input = 'https://';
+				}
+				$input = $schema_input . ltrim($input, '/');
+			}
+		}
+
+		if ( empty($input) ) {
+			$set_message = 'You must enter a URL from your own domain to scan.';
+		} elseif ( !filter_var( $input, FILTER_VALIDATE_URL) ) {
 			$set_message = 'You have entered an invalid URL address.';
-			$set_type = 'error';
-		}
-
-		if ( $baseurl_host == parse_url( $thisurl, PHP_URL_HOST ) ) {
-			$output = $thisurl;
-		} else {
-			$output = esc_url( VarnishPurger::the_home_url() );
+		} elseif ( $baseurl_host !== parse_url( $input, PHP_URL_HOST ) ) {
 			$set_message = 'You cannot scan URLs on other domains.';
-			$set_type = 'error';
+		} else {
+			$output = filter_var( $input, FILTER_VALIDATE_URL);
+			$set_message = 'Scanning New URL...';
+			$set_type = 'updated';
 		}
-
+		
 		add_settings_error( 'vhp_varnish_url', 'varnish-url', $set_message, $set_type );
 		return $output;
 	}

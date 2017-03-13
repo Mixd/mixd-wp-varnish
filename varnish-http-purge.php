@@ -1,19 +1,18 @@
 <?php
 /*
-Plugin Name: Mixd Plugins - Purge Varnish
-Plugin URI: https://github.com/mixd/mixd-wp-varnish
+Plugin Name: Mixd Plugins: Varnish HTTP Purge
+Plugin URI: https://github.com/Mixd/mixd-wp-varnish
 Description: Automatically purge Varnish Cache when content on your site is modified.
-Version: 4.0.0
-Author: Ash Davies
-Author URI: http://github.com/mixd/mixd-wp-varnish
+Version: 4.0.3-Mixd
+Author: Mika Epstein
+Author URI: https://halfelf.org/
 License: http://www.apache.org/licenses/LICENSE-2.0
-Contributor: Ash Davies
 Text Domain: varnish-http-purge
 Network: true
 
-Copyright 2013-2016: Mika A. Epstein (email: ipstenu@halfelf.org)
+	Copyright 2013-2016: Mika A. Epstein (email: ipstenu@halfelf.org)
 
-Original Author: Leon Weidauer ( http:/www.lnwdr.de/ )
+	Original Author: Leon Weidauer ( http:/www.lnwdr.de/ )
 
 	This file is part of Varnish HTTP Purge, a plugin for WordPress.
 
@@ -94,20 +93,14 @@ class VarnishPurger {
 		// Checking user permissions for who can and cannot use the admin button
 		if (
 			// SingleSite - admins can always purge
-			( !is_multisite() && current_user_can('manage_varnish') ) ||
+			( !is_multisite() && current_user_can('mixd_wp_plugins') ) ||
 			// Multisite - Network Admin can always purge
-			current_user_can('manage_varnish') ||
+			current_user_can('manage_network') ||
 			// Multisite - Site admins can purge UNLESS it's a subfolder install and we're on site #1
-			( is_multisite() && !current_user_can('manage_varnish') && ( SUBDOMAIN_INSTALL || ( !SUBDOMAIN_INSTALL && ( BLOG_ID_CURRENT_SITE != $blog_id ) ) ) )
+			( is_multisite() && current_user_can('mixd_wp_plugins') && ( SUBDOMAIN_INSTALL || ( !SUBDOMAIN_INSTALL && ( BLOG_ID_CURRENT_SITE != $blog_id ) ) ) )
 			) {
 				add_action( 'admin_bar_menu', array( $this, 'varnish_rightnow_adminbar' ), 100 );
 		}
-
-		$editor = get_role( 'editor' );
- 		$editor->add_cap( 'manage_varnish' );
-
- 		$administrator = get_role( 'administrator' );
- 		$administrator->add_cap( 'manage_varnish' );
 
 	}
 
@@ -152,10 +145,10 @@ class VarnishPurger {
 	function varnish_rightnow_adminbar($admin_bar){
 		$admin_bar->add_menu( array(
 			'id'	=> 'purge-varnish-cache-all',
-			'title' => __('Purge Varnish','varnish-http-purge'),
+			'title' => __('Empty Cache','varnish-http-purge'),
 			'href'  => wp_nonce_url( add_query_arg('vhp_flush_all', 1), 'vhp-flush-all'),
 			'meta'  => array(
-				'title' => __('Purge Varnish','varnish-http-purge'),
+				'title' => __('Empty Cache','varnish-http-purge'),
 			),
 		));
 	}
@@ -170,19 +163,19 @@ class VarnishPurger {
 		global $blog_id;
 		$url = wp_nonce_url(add_query_arg('vhp_flush_all', 1), 'vhp-flush-all');
 		$intro = sprintf( __('<a href="%1$s">Varnish HTTP Purge</a> automatically purges your posts when published or updated. Sometimes you need a manual flush.', 'varnish-http-purge' ), 'http://wordpress.org/plugins/varnish-http-purge/' );
-		$button =  __('Press the button below to force it to purge your entire cache.', 'varnish-http-purge' );
+		$button =  __('Press the button below to force it to empty your entire Varnish cache.', 'varnish-http-purge' );
 		$button .= '</p><p><span class="button"><a href="'.$url.'"><strong>';
-		$button .= __('Purge Varnish', 'varnish-http-purge' );
+		$button .= __('Empty Cache', 'varnish-http-purge' );
 		$button .= '</strong></a></span>';
 		$nobutton =  __('You do not have permission to purge the cache for the whole site. Please contact your administrator.', 'varnish-http-purge' );
 
 		if (
 			// SingleSite - admins can always purge
-			( !is_multisite() && current_user_can('manage_varnish') ) ||
+			( !is_multisite() && current_user_can('mixd_wp_plugins') ) ||
 			// Multisite - Network Admin can always purge
-			current_user_can('manage_varnish') ||
+			current_user_can('manage_network') ||
 			// Multisite - Site admins can purge UNLESS it's a subfolder install and we're on site #1
-			( is_multisite() && !current_user_can('manage_varnish') && ( SUBDOMAIN_INSTALL || ( !SUBDOMAIN_INSTALL && ( BLOG_ID_CURRENT_SITE != $blog_id ) ) ) )
+			( is_multisite() && current_user_can('mixd_wp_plugins') && ( SUBDOMAIN_INSTALL || ( !SUBDOMAIN_INSTALL && ( BLOG_ID_CURRENT_SITE != $blog_id ) ) ) )
 		) {
 			$text = $intro.' '.$button;
 		} else {

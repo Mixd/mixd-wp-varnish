@@ -3,7 +3,7 @@ Contributors: Ipstenu, mikeschroder, techpriester
 Tags: varnish, purge, cache
 Requires at least: 4.0
 Tested up to: 4.7
-Stable tag: 4.0
+Stable tag: 4.0.3
 
 Automatically purge Varnish Cache when content on your site is modified.
 
@@ -208,6 +208,23 @@ If you don't have a post ID and you still need this, add it to *both* `varnish_h
 Yes I do, and yes and no. This plugin is installed by default for _all_ DreamPress installs on DreamHost, and I maintain it for DreamHost, but it was not originally an official DH plugin which means I will continue to support all users to the best of my ability.
 
 == Changelog ==
+
+= 4.0.3 =
+* Better explanation when Cloudflare gets in the way of DNS
+* Rename flush button for people who don't speak Varnish
+
+= 4.0.2 =
+* Support for WP-CLI commands and PHP > 5.5 (though please upgrade, props @robertpeake)
+* Better information regarding Cloudflare
+* Better failure on domains for scanner
+* Better IP detection
+* Break apart settings for faster saving
+
+= 4.0.1 =
+* Fix typo (on -> one)
+* Correct permissions on Multisite (props @phh - resolves #27 #28)
+* Correct weird merge error (props @phh - resolves #25 #26)
+* Fix formatting in Changelog
 
 = 4.0 =
 * Added Varnish Status Page - Tools -> Varnish Status (includes basic scanning etc)
